@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
+
+    <title id="appTitle">Medical Assistant App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Configure Tailwind to use class strategy for dark mode */
+        html.dark {
+            /* For example, if you wanted a specific dark background for the whole page */
+            /* background-color: #1a202c; */
+        }
+
+        /* Custom styles for better aesthetics, complementing Tailwind */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: navy; /* Default light mode background */
+            /* Dark mode background for body */
+            .dark & {
+                background-color: #1a202c; /* A dark blue-gray */
+            }
+        }
+        /* Ensure the main container is centered and takes appropriate width */
+        .container-wrapper {
+            min-height: 100vh; /* Keep for vertical centering */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            box-sizing: border-box;
+            transition: background-color 0.5s ease; /* Smooth transition for background */
+        }
+        .app-container {
+            background-color: #ffffff; /* Light mode background */
+            border-radius: 1rem; /* rounded-xl */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* shadow-2xl */
+            padding: 2rem; /* p-8 */
+            width: 100%;
+            max-width: 48rem; /* max-w-3xl (approx) - Adjusted for better centering */
+            border: 1px solid #bfdbfe; /* border-blue-200 */
+            box-sizing: border-box;
+            transition: background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease; /* Smooth transitions */
+
+            /* Dark mode styles for app container */
+            .dark & {
+                background-color: #2d3748; /* Darker gray */
+                border-color: #4a5568; /* Darker border */
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            }
+        }
+        textarea {
+            transition: all 0.2s ease-in-out;
+            /* Dark mode for textarea */
+            .dark & {
+                background-color: #4a5568;
+                color: #e2e8f0;
+                border-color: #616e7f;
+            }
+        }
+        textarea:focus {
+            outline: none;
+            border-color: transparent;
+            box-shadow: 0 0 0 2px #60a5fa; /* focus:ring-2 focus:ring-blue-500 */
+            .dark & {
+                box-shadow: 0 0 0 2px #90cdf4; /* Lighter blue for dark mode focus */
+            }
+        }
+        button {
+            transition: all 0.3s ease-in-out;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: scale(1); /* Prevent hover effect when disabled */
+        }
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        /* Styling for prose-like content within results */
+        .prose br {
+            content: "";
+            display: block;
+            margin-bottom: 0.5em; /* Add some spacing between lines */
+        }
+        /* Dark mode for text colors */
+        .dark .text-gray-700 { color: #cbd5e0; } /* labels */
+        .dark .text-blue-800 { color: #90cdf4; } /* app heading */
+        /* .dark .text-yellow-800 { color: #fbd38d; } */ /* disclaimer text - no longer needed */
+        .dark .text-blue-900 { color: #e2e8f0; } /* diagnosis result text */
+        .dark .text-blue-700 { color: #90cdf4; } /* diagnosis heading */
+        .dark .text-red-700 { color: #fc8181; } /* error text */
+
+        /* Dark mode for specific backgrounds */
+        /* .dark .bg-yellow-50 { background-color: #4a5568; border-color: #616e7f; } */ /* disclaimer box - no longer needed */
+        .dark .bg-blue-50 { background-color: #2d3748; border-color: #4a5568; } /* diagnosis result box */
+        .dark .bg-red-50 { background-color: #4a2020; border-color: #742a2a; } /* error box */
+
+        /* Styles for the circular toggles (Night Mode and Language) */
+        .circular-toggle {
+            width: 40px; /* Adjust size as needed */
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background-color: #cbd5e0; /* Light gray in light mode */
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative; /* For absolute positioning of icons */
+            overflow: hidden; /* Hide overflowing icons during transition */
+
+            /* Dark mode styles for the toggle itself */
+            .dark & {
+                background-color: #4a5568; /* Darker gray in dark mode */
+            }
+        }
+        .circular-toggle:hover {
+            transform: scale(1.05);
+        }
+        .circular-toggle svg {
+            width: 20px; /* Decreased icon size */
+            height: 15px; /* Decreased icon size */
+            position: absolute; /* Allow icons to stack */
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .circular-toggle .icon-sun {
+            fill: #f59e0b; /* Amber color for sun */
+        }
+        .circular-toggle .icon-moon {
+            fill: #a0aec0; /* Blue-gray for moon */
+        }
+        .circular-toggle .icon-flag-en { /* Now represents US flag */
+            /* Specific colors for US flag */
+            fill: #FFFFFF; /* White for stars and stripes */
+        }
+        .circular-toggle .icon-flag-el {
+            /* Specific colors for Greek flag */
+            fill: #005bae; /* Blue */
+            stroke: #ffffff; /* White */
+            stroke-width: 1.5;
+        }
+        .circular-toggle .icon-hidden {
+            opacity: 0;
+            transform: scale(0.5); /* Animate out */
+        }
+        .circular-toggle .icon-visible {
+            opacity: 1;
+            transform: scale(1); /* Animate in */
+        }
+    </style>
+</head>
+<body>
+    <div class="container-wrapper bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <div class="app-container">
+            <div class="flex justify-between items-center mb-4">
+                <div id="nightModeToggle" class="circular-toggle">
+                    <svg class="icon-sun icon-visible" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0 2a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM12 0a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0V1a1 1 0 0 1 1-1zm0 21a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1zM3.525 4.929a1 1 0 0 1 1.414 0l1.414 1.414a1 1 0 0 1-1.414 1.414L3.525 6.343a1 1 0 0 1 0-1.414zm14.142 14.142a1 1 0 0 1 0-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414 0zM0 12a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2H1a1 1 0 0 1-1-1zm21 0a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2h-2a1 1 0 0 1-1-1zM4.929 20.475a1 1 0 0 1 0-1.414l1.414-1.414a1 1 0 0 1 1.414 1.414l-1.414 1.414a1 1 0 0 1-1.414 0zm14.142-14.142a1 1 0 0 1 0 1.414l-1.414 1.414a1 1 0 1 1-1.414-1.414l1.414-1.414a1 1 0 0 1 1.414 0z"/>
+                    </svg>
+                    <svg class="icon-moon icon-hidden" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.12-1.36a.75.75 0 0 1 .15-.75c.42-.42.7-.97.83-1.57a.75.75 0 0 1 .1-.7c-.01-.01-.01-.01-.02-.02a.75.75 0 0 1-.7-.1c-.6-.13-1.15-.41-1.57-.83a.75.75 0 0 1-.75-.15c-.44.08-.9.12-1.36.12A9 9 0 0 0 12 3z"/>
+                    </svg>
+                </div>
+
+                <div id="languageToggle" class="circular-toggle">
+                    <svg class="icon-flag-en icon-visible" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="24" height="24" fill="#B22234"/>
+                        <rect width="24" height="1.846" y="0" fill="#FFFFFF"/>
+                        <rect width="24" height="1.846" y="3.692" fill="#FFFFFF"/>
+                        <rect width="24" height="1.846" y="7.384" fill="#FFFFFF"/>
+                        <rect width="24" height="1.846" y="11.076" fill="#FFFFFF"/>
+                        <rect width="24" height="1.846" y="14.768" fill="#FFFFFF"/>
+                        <rect width="24" height="1.846" y="18.46" fill="#FFFFFF"/>
+                        <rect width="24" height="1.846" y="22.152" fill="#FFFFFF"/>
+                        <rect width="9.6" height="13.846" fill="#3C3B6E"/>
+                        <circle cx="2" cy="2" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="4" cy="2" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="6" cy="2" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="3" cy="4" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="5" cy="4" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="2" cy="6" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="4" cy="6" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="6" cy="6" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="3" cy="8" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="5" cy="8" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="2" cy="10" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="4" cy="10" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="6" cy="10" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="3" cy="12" r="0.8" fill="#FFFFFF"/>
+                        <circle cx="5" cy="12" r="0.8" fill="#FFFFFF"/>
+                    </svg>
+                    <svg class="icon-flag-el icon-hidden" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="24" height="24" fill="#005bae"/>
+                        <rect x="0" y="0" width="24" height="2.66" fill="#ffffff"/>
+                        <rect x="0" y="5.32" width="24" height="2.66" fill="#ffffff"/>
+                        <rect x="0" y="10.64" width="24" height="2.66" fill="#ffffff"/>
+                        <rect x="0" y="15.96" width="24" height="2.66" fill="#ffffff"/>
+                        <rect x="0" y="21.28" width="24" height="2.66" fill="#ffffff"/>
+                        <rect x="0" y="0" width="8" height="13.3" fill="#005bae"/>
+                        <rect x="0" y="5.32" width="8" height="2.66" fill="#ffffff"/>
+                        <rect x="2.66" y="0" width="2.66" height="13.3" fill="#ffffff"/>
+                    </svg>
+                </div>
+            </div>
+
+            <h1 id="appHeading" class="text-4xl font-extrabold text-center text-blue-800 mb-6 tracking-tight">
+                Medical Assistant App
+            </h1>
+
+            <div class="mb-6">
+                <label for="symptoms" id="symptomsLabel" class="block text-lg font-medium text-gray-700 mb-2">
+                    Enter Symptoms and Observations:
+                </label>
+                <textarea
+                    id="symptoms"
+                    class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out resize-y min-h-[120px] text-gray-800"
+                    placeholder="e.g., 'Fever, cough, sore throat, body aches, headache, fatigue for 3 days.'"
+                    rows="5"
+                ></textarea>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                <button
+                    id="getDiagnosisBtn"
+                    class="flex-1 bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 shadow-lg"
+                >
+                    <span id="diagnosisBtnText" class="flex items-center justify-center">
+                        Get Differential Diagnosis
+                    </span>
+                </button>
+            </div>
+
+            <div id="diagnosisResultOutput" class="hidden bg-blue-50 border border-blue-200 text-blue-900 p-6 rounded-lg shadow-inner mt-8">
+                <h2 id="diagnosisHeading" class="text-2xl font-bold text-blue-700 mb-4">Diagnosis & Treatment Suggestions:</h2>
+                <div id="diagnosisResultContent" class="prose max-w-none"></div>
+            </div>
+
+            <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mt-6 text-sm">
+                <p id="disclaimerTitle" class="font-semibold mb-2">Disclaimer:</p>
+                <p id="disclaimerText">This app is for informational purposes only and should not be used as a substitute for professional medical advice, diagnosis, or treatment. Always consult with a qualified healthcare professional for any health concerns.</p>
+            </div>
+
+            <div id="errorOutput" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mt-6">
+                <p id="errorTitle" class="font-semibold">Error:</p>
+                <p id="errorMessage"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get references to DOM elements
+        const languageToggle = document.getElementById('languageToggle');
+        const iconFlagEn = languageToggle.querySelector('.icon-flag-en');
+        const iconFlagEl = languageToggle.querySelector('.icon-flag-el');
+
+        const nightModeToggle = document.getElementById('nightModeToggle');
+        const iconSun = nightModeToggle.querySelector('.icon-sun');
+        const iconMoon = nightModeToggle.querySelector('.icon-moon');
+
+        const appTitle = document.getElementById('appTitle');
+        const appHeading = document.getElementById('appHeading');
+        const disclaimerTitle = document.getElementById('disclaimerTitle');
+        const disclaimerText = document.getElementById('disclaimerText');
+        const symptomsLabel = document.getElementById('symptomsLabel');
+        const symptomsInput = document.getElementById('symptoms');
+        const getDiagnosisBtn = document.getElementById('getDiagnosisBtn');
+        const diagnosisResultOutput = document.getElementById('diagnosisResultOutput');
+        const diagnosisResultContent = document.getElementById('diagnosisResultContent');
+        const errorOutput = document.getElementById('errorOutput');
+        const errorMessage = document.getElementById('errorMessage');
+        const diagnosisBtnText = document.getElementById('diagnosisBtnText');
+        const diagnosisHeading = document.getElementById('diagnosisHeading');
+        const errorTitle = document.getElementById('errorTitle');
+
+        // Text content for different languages
+        const translations = {
+            en: {
+                appTitle: 'Medical Assistant App',
+                appHeading: 'Medical Assistant App',
+                disclaimerTitle: 'Disclaimer:',
+                disclaimerText: 'This app is for informational purposes only and should not be used as a substitute for professional medical advice, diagnosis, or treatment. Always consult with a qualified healthcare professional for any health concerns.',
+                symptomsLabel: 'Enter Symptoms and Observations:',
+                symptomsPlaceholder: "e.g., 'Fever, cough, sore throat, body aches, headache, fatigue for 3 days.'",
+                getDiagnosisBtn: 'Get Differential Diagnosis',
+                getDiagnosisLoading: 'Getting Diagnosis...',
+                diagnosisHeading: 'Diagnosis & Treatment Suggestions:',
+                errorTitle: 'Error:',
+                errorMessageGeneric: 'Could not get a response. Please try again or rephrase your input.',
+                errorMessageNetwork: 'An error occurred while fetching the response. Please check your network connection and try again.'
+            },
+            el: {
+                appTitle: 'Ιατρικός Βοηθός Εφαρμογή',
+                appHeading: 'Εφαρμογή Ιατρικού Βοηθού',
+                disclaimerTitle: 'Αποποίηση Ευθύνης:',
+                disclaimerText: 'Αυτή η εφαρμογή προορίζεται μόνο για ενημερωτικούς σκοπούς και δεν πρέπει να χρησιμοποιηθεί ως υποκατάστατο επαγγελματικής ιατρικής συμβουλής, διάγνωσης ή θεραπείας. Πάντα να συμβουλεύεστε έναν εξειδικευμένο επαγγελματία υγείας για οποιεσδήποτε ανησυνίες για την υγεία.',
+                symptomsLabel: 'Εισαγάγετε Συμπτώματα και Παρατηρήσεις:',
+                symptomsPlaceholder: "π.χ., 'Πυρετός, βήχας, πονόλαιμος, μυϊκοί πόνοι, πονοκέφαλος, κόπωση για 3 ημέρες.'",
+                getDiagnosisBtn: 'Λήψη Διαφορικής Διάγνωσης',
+                getDiagnosisLoading: 'Λήψη Διάγνωσης...',
+                diagnosisHeading: 'Προτάσεις Διάγνωσης & Θεραπείας:',
+                errorTitle: 'Σφάλμα:',
+                errorMessageGeneric: 'Δεν ήταν δυνατή η λήψη απάντησης. Παρακαλώ δοκιμάστε ξανά ή αναδιατυπώστε την εισαγωγή σας.',
+                errorMessageNetwork: 'Παρουσιάστηκε σφάλμα κατά τη λήψη της απάντησης. Ελέγξτε τη σύνδεσή σας στο δίκτυο και δοκιμάστε ξανά.'
+            }
+        };
+
+        let currentLanguage = localStorage.getItem('appLanguage') || 'en'; // Initialize from localStorage
+        let isNightMode = localStorage.getItem('nightMode') === 'true'; // Initialize from localStorage
+
+        // Function to apply/remove 'dark' class to html element and toggle icons
+        function applyTheme() {
+            if (isNightMode) {
+                document.documentElement.classList.add('dark');
+                iconSun.classList.add('icon-hidden');
+                iconMoon.classList.remove('icon-hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                iconSun.classList.remove('icon-hidden');
+                iconMoon.classList.add('icon-hidden');
+            }
+            localStorage.setItem('nightMode', isNightMode); // Save preference
+        }
+
+        // Function to update flag icons based on current language
+        function updateLanguageIcons() {
+            if (currentLanguage === 'en') {
+                iconFlagEn.classList.remove('icon-hidden');
+                iconFlagEl.classList.add('icon-hidden');
+            } else {
+                iconFlagEn.classList.add('icon-hidden');
+                iconFlagEl.classList.remove('icon-hidden');
+            }
+        }
+
+        // Function to update all UI text based on the selected language
+        function updateUI(lang) {
+            appTitle.textContent = translations[lang].appTitle;
+            appHeading.textContent = translations[lang].appHeading;
+            disclaimerTitle.textContent = translations[lang].disclaimerTitle;
+            disclaimerText.textContent = translations[lang].disclaimerText;
+            symptomsLabel.textContent = translations[lang].symptomsLabel;
+            symptomsInput.placeholder = translations[lang].symptomsPlaceholder;
+            diagnosisBtnText.innerHTML = translations[lang].getDiagnosisBtn;
+            diagnosisHeading.textContent = translations[lang].diagnosisHeading;
+            errorTitle.textContent = translations[lang].errorTitle;
+
+            // Update night mode toggle icons based on current mode
+            applyTheme(); // Re-apply theme to update toggle text
+            updateLanguageIcons(); // Update language flag icons
+            updateButtonStates(); // Re-evaluate button states to apply correct loading text if already loading
+        }
+
+        // Event listener for language selection change
+        languageToggle.addEventListener('click', () => {
+            currentLanguage = (currentLanguage === 'en' ? 'el' : 'en'); // Toggle language
+            localStorage.setItem('appLanguage', currentLanguage); // Save language preference
+            updateUI(currentLanguage);
+        });
+
+        // Event listener for night mode toggle
+        nightModeToggle.addEventListener('click', () => {
+            isNightMode = !isNightMode; // Toggle the mode
+            applyTheme(); // Apply the new theme
+        });
+
+        // State variables
+        let isLoadingDiagnosis = false;
+
+        // Helper function to show/hide loading spinner on buttons
+        function toggleLoading(buttonTextElement, isLoading, originalTextKey) {
+            const loadingTextKey = originalTextKey + 'Loading';
+            const textToDisplay = isLoading ? translations[currentLanguage][loadingTextKey] : translations[currentLanguage][originalTextKey];
+
+            if (isLoading) {
+                buttonTextElement.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    ${textToDisplay}
+                `;
+            } else {
+                buttonTextElement.innerHTML = textToDisplay;
+            }
+        }
+
+        // Helper function to update button disabled state
+        function updateButtonStates() {
+            const symptomsTrimmed = symptomsInput.value.trim();
+            getDiagnosisBtn.disabled = isLoadingDiagnosis || !symptomsTrimmed;
+            toggleLoading(diagnosisBtnText, isLoadingDiagnosis, 'getDiagnosisBtn');
+        }
+
+        // Initial setup on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial language from localStorage or default
+            updateUI(currentLanguage); // This will also call applyTheme() and updateLanguageIcons()
+        });
+
+
+        // Listen for input changes to enable/disable buttons
+        symptomsInput.addEventListener('input', updateButtonStates);
+
+        /**
+         * Function to call the Gemini API.
+         * @param {string} prompt - The prompt to send to the LLM.
+         */
+        async function callGeminiAPI(prompt) {
+            // Clear previous results and errors
+            diagnosisResultContent.innerHTML = '';
+            diagnosisResultOutput.classList.add('hidden');
+            errorOutput.classList.add('hidden');
+            errorMessage.textContent = '';
+
+            // Set loading state
+            isLoadingDiagnosis = true;
+            updateButtonStates();
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+
+                const apiKey = "AIzaSyDadn8bhKVgMmFry6iTMdOGiVTaenlr78U"; // IMPORTANT: Replace with your actual Gemini API Key
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    diagnosisResultContent.innerHTML = text.replace(/\n/g, '<br />'); // Preserve newlines
+                    diagnosisResultOutput.classList.remove('hidden');
+                } else {
+                    errorMessage.textContent = translations[currentLanguage].errorMessageGeneric;
+                    errorOutput.classList.remove('hidden');
+                    console.error('Unexpected API response structure:', result);
+                }
+            } catch (err) {
+                errorMessage.textContent = translations[currentLanguage].errorMessageNetwork;
+                errorOutput.classList.remove('hidden');
+                console.error('Error during API call:', err);
+            } finally {
+                isLoadingDiagnosis = false; // Always set loading state to false
+                updateButtonStates();
+            }
+        }
+
+        /**
+         * Handles the click event for the "Get Differential Diagnosis" button.
+         */
+        getDiagnosisBtn.addEventListener('click', async () => {
+            const prompt = `Based on the following symptoms and observations, provide ONLY a numbered list of potential conditions. Following the list include EXTREMELY BRIEF explanations or treatment suggestions as this is meant for the practitioner.
+            
+            Symptoms and Observations: ${symptomsInput.value}
+            
+            Please respond in ${currentLanguage === 'el' ? 'Greek' : 'English'}.`;
+
+            await callGeminiAPI(prompt);
+        });
+
+        // Initial UI setup when the DOM is fully loaded
+        // This ensures all elements are available before trying to access them
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial language from localStorage or default
+            updateUI(currentLanguage); // This will also call applyTheme() and updateLanguageIcons()
+        });
+
+        // Registering the Service Worker
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.register("/service-worker.js")
+            .then((registration) => {
+          console.log("ServiceWorker registered with scope: ", registration.scope);
+        })
+            .catch((error) => {
+          console.log("ServiceWorker registration failed: ", error);
+        });
+        }
+
+    </script>
+</body>
+</html>
