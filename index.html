@@ -472,7 +472,7 @@
          * Handles the click event for the "Get Differential Diagnosis" button.
          */
         getDiagnosisBtn.addEventListener('click', async () => {
-            const prompt = `Based on the following symptoms and observations, provide ONLY a numbered list of the top three potential conditions. Under the list include EXTREMELY BRIEF explanations or treatment suggestions.
+            const prompt = `Based on the following symptoms and observations, provide a numbered list of ONLY the top three potential conditions. Under the list include EXTREMELY BRIEF explanations or treatment suggestions.
             
             Symptoms and Observations: ${symptomsInput.value}
             
