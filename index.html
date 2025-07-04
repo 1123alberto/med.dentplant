@@ -233,6 +233,33 @@
                 ></textarea>
             </div>
 
+            <div class="mb-6">
+                <label for="symptomImage" id="imageLabel" class="block text-lg font-medium text-gray-700 mb-2">
+                    Upload or Take Photo of Symptoms (Optional):
+                </label>
+                 <input
+                    type="file"
+                    id="symptomImage"
+                    accept="image/*"
+                    capture="environment" class="block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100 dark:file:bg-blue-700 dark:file:text-white dark:hover:file:bg-blue-600"
+            />
+            <div id="imagePreviewContainer" class="mt-4 hidden">
+                <p id="imagePreviewLabel" class="text-gray-700 dark:text-gray-300 mb-2">Image Preview:</p>
+                <img id="imagePreview" src="#" alt="Symptom Image Preview" class="max-w-full h-auto rounded-lg shadow-md border border-gray-300 dark:border-gray-600" />
+                <button
+                    id="clearImageBtn"
+                    class="mt-2 bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-300 shadow-md text-sm"
+                >
+                    Clear Image
+                </button>
+                </div>
+            </div>
+
             <div class="flex flex-col sm:flex-row gap-4 mb-6">
                 <button
                     id="getDiagnosisBtn"
@@ -285,6 +312,12 @@
         const diagnosisBtnText = document.getElementById('diagnosisBtnText');
         const diagnosisHeading = document.getElementById('diagnosisHeading');
         const errorTitle = document.getElementById('errorTitle');
+        const symptomImageInput = document.getElementById('symptomImage');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const clearImageBtn = document.getElementById('clearImageBtn');
+        const imageLabel = document.getElementById('imageLabel');
+        const imagePreviewLabel = document.getElementById('imagePreviewLabel');
 
         // Text content for different languages
         const translations = {
@@ -300,7 +333,10 @@
                 diagnosisHeading: 'Diagnosis & Treatment Suggestions:',
                 errorTitle: 'Error:',
                 errorMessageGeneric: 'Could not get a response. Please try again or rephrase your input.',
-                errorMessageNetwork: 'An error occurred while fetching the response. Please check your network connection and try again.'
+                errorMessageNetwork: 'An error occurred while fetching the response. Please check your network connection and try again.',
+                imageLabel: 'Upload or Take Photo of Symptoms (Optional):',
+                imagePreviewLabel: 'Image Preview:',
+                clearImageBtn: 'Clear Image'
             },
             el: {
                 appTitle: 'Ιατρικός Βοηθός Εφαρμογή',
@@ -314,7 +350,10 @@
                 diagnosisHeading: 'Προτάσεις Διάγνωσης & Θεραπείας:',
                 errorTitle: 'Σφάλμα:',
                 errorMessageGeneric: 'Δεν ήταν δυνατή η λήψη απάντησης. Παρακαλώ δοκιμάστε ξανά ή αναδιατυπώστε την εισαγωγή σας.',
-                errorMessageNetwork: 'Παρουσιάστηκε σφάλμα κατά τη λήψη της απάντησης. Ελέγξτε τη σύνδεσή σας στο δίκτυο και δοκιμάστε ξανά.'
+                errorMessageNetwork: 'Παρουσιάστηκε σφάλμα κατά τη λήψη της απάντησης. Ελέγξτε τη σύνδεσή σας στο δίκτυο και δοκιμάστε ξανά.',
+                imageLabel: 'Ανέβασμα ή Λήψη Φωτογραφίας Συμπτωμάτων (Προαιρετικό):',
+                imagePreviewLabel: 'Προεπισκόπηση Εικόνας:',
+                clearImageBtn: 'Εκκαθάριση Εικόνας'
             }
         };
 
@@ -357,6 +396,10 @@
             diagnosisBtnText.innerHTML = translations[lang].getDiagnosisBtn;
             diagnosisHeading.textContent = translations[lang].diagnosisHeading;
             errorTitle.textContent = translations[lang].errorTitle;
+
+            imageLabel.textContent = translations[lang].imageLabel;
+            imagePreviewLabel.textContent = translations[lang].imagePreviewLabel;
+            clearImageBtn.textContent = translations[lang].clearImageBtn;
 
             // Update night mode toggle icons based on current mode
             applyTheme(); // Re-apply theme to update toggle text
@@ -401,7 +444,7 @@
         // Helper function to update button disabled state
         function updateButtonStates() {
             const symptomsTrimmed = symptomsInput.value.trim();
-            getDiagnosisBtn.disabled = isLoadingDiagnosis || !symptomsTrimmed;
+            getDiagnosisBtn.disabled = isLoadingDiagnosis || (!symptomsTrimmed && !selectedImageFile);
             toggleLoading(diagnosisBtnText, isLoadingDiagnosis, 'getDiagnosisBtn');
         }
 
@@ -415,11 +458,40 @@
         // Listen for input changes to enable/disable buttons
         symptomsInput.addEventListener('input', updateButtonStates);
 
+        let selectedImageFile = null; // Store the selected file
+
+        symptomImageInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                selectedImageFile = file;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                selectedImageFile = null;
+                imagePreview.src = '#';
+                imagePreviewContainer.classList.add('hidden');
+            }
+            updateButtonStates(); // Re-evaluate button state
+        });
+
+        clearImageBtn.addEventListener('click', () => {
+            selectedImageFile = null;
+            symptomImageInput.value = ''; // Clear the file input
+            imagePreview.src = '#';
+            imagePreviewContainer.classList.add('hidden');
+            updateButtonStates(); // Re-evaluate button state
+        });
+
         /**
-         * Function to call the Gemini API.
-         * @param {string} prompt - The prompt to send to the LLM.
-         */
-        async function callGeminiAPI(prompt) {
+        * Function to call the Gemini API.
+        * @param {string} promptText - The text prompt to send to the LLM.
+        * @param {File | null} imageFile - The image file to send, or null if no image.
+        */
+        async function callGeminiAPI(promptText, imageFile) {
             // Clear previous results and errors
             diagnosisResultContent.innerHTML = '';
             diagnosisResultOutput.classList.add('hidden');
@@ -432,54 +504,86 @@
 
             try {
                 let chatHistory = [];
-                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-                const payload = { contents: chatHistory };
+                const parts = [];
 
-                const apiKey = "AIzaSyDadn8bhKVgMmFry6iTMdOGiVTaenlr78U"; // IMPORTANT: Replace with your actual Gemini API Key
+            // Add text part
+            parts.push({ text: promptText });
 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+            // Add image part if a file is selected
+            if (imageFile) {
+                const base64Image = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result.split(',')[1]); // Get base64 string after "data:image/jpeg;base64,"
+                    reader.onerror = reject;
+                    reader.readAsDataURL(imageFile);
                 });
 
-                const result = await response.json();
-
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const text = result.candidates[0].content.parts[0].text;
-                    diagnosisResultContent.innerHTML = text.replace(/\n/g, '<br />'); // Preserve newlines
-                    diagnosisResultOutput.classList.remove('hidden');
-                } else {
-                    errorMessage.textContent = translations[currentLanguage].errorMessageGeneric;
-                    errorOutput.classList.remove('hidden');
-                    console.error('Unexpected API response structure:', result);
-                }
-            } catch (err) {
-                errorMessage.textContent = translations[currentLanguage].errorMessageNetwork;
-                errorOutput.classList.remove('hidden');
-                console.error('Error during API call:', err);
-            } finally {
-                isLoadingDiagnosis = false; // Always set loading state to false
-                updateButtonStates();
+                parts.push({
+                    inlineData: {
+                        mimeType: imageFile.type, // e.g., "image/jpeg", "image/png"
+                        data: base64Image
+                    }
+                });
             }
+
+            chatHistory.push({ role: "user", parts: parts });
+            const payload = { contents: chatHistory };
+
+            const apiKey = "AIzaSyDadn8bhKVgMmFry6iTMdOGiVTaenlr78U"; // IMPORTANT: Replace with your actual Gemini API Key
+
+            // **IMPORTANT**: Use a multimodal model for images, e.g., gemini-1.5-flash or gemini-pro-vision
+            // For production, always use the most appropriate and cost-effective model.
+            // As of now, gemini-1.5-flash is generally recommended for multimodal inputs.
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                const text = result.candidates[0].content.parts[0].text;
+                diagnosisResultContent.innerHTML = text.replace(/\n/g, '<br />'); // Preserve newlines
+                diagnosisResultOutput.classList.remove('hidden');
+            } else {
+                errorMessage.textContent = translations[currentLanguage].errorMessageGeneric;
+                errorOutput.classList.remove('hidden');
+                console.error('Unexpected API response structure:', result);
+            }
+        } catch (err) {
+            errorMessage.textContent = translations[currentLanguage].errorMessageNetwork;
+            errorOutput.classList.remove('hidden');
+            console.error('Error during API call:', err);
+        } finally {
+            isLoadingDiagnosis = false; // Always set loading state to false
+            updateButtonStates();
+        }
+    }
+
+    /**
+    * Handles the click event for the "Get Differential Diagnosis" button.
+    */
+    getDiagnosisBtn.addEventListener('click', async () => {
+        // Construct the prompt based on text and image availability
+        let basePrompt = `Based on the following symptoms and observations, provide a numbered list of ONLY the most likely potential conditions. Under the list include EXTREMELY BRIEF explanations or treatment suggestions.`;
+
+        if (symptomsInput.value.trim()) {
+            basePrompt += `\n\nSymptoms and Observations: ${symptomsInput.value.trim()}`;
         }
 
-        /**
-         * Handles the click event for the "Get Differential Diagnosis" button.
-         */
-        getDiagnosisBtn.addEventListener('click', async () => {
-            const prompt = `Based on the following symptoms and observations, provide a numbered list of ONLY the most likely potential conditions. Under the list include EXTREMELY BRIEF explanations or treatment suggestions.
-            
-            Symptoms and Observations: ${symptomsInput.value}
-            
-            Please respond in ${currentLanguage === 'el' ? 'Greek' : 'English'}.`;
+        if (selectedImageFile) {
+            basePrompt += `\n\nAlso consider the attached image for additional context regarding the symptoms.`;
+        }
 
-            await callGeminiAPI(prompt);
-        });
+        const fullPrompt = `${basePrompt}\n\nPlease respond in ${currentLanguage === 'el' ? 'Greek' : 'English'}.`;
+
+        await callGeminiAPI(fullPrompt, selectedImageFile);
+    });
 
         // Initial UI setup when the DOM is fully loaded
         // This ensures all elements are available before trying to access them
